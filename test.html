@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>test socket connection</title>
+</head>
+<body>
+    <h3>test socket connection</h3>
+    <label>monitor nos:</label><input id="monitorno" type="text" /> 
+    <button id="subscribe">subscribe</button>
+</body>
+<script>
+    var ws = new WebSocket("ws://"+location.hostname+":8443/signalr");
+
+    var monitornoInput = document.getElementById("monitorno");
+    var subscribeButton = document.getElementById("subscribe");
+
+    subscribeButton.onclick = function(e) {
+        var no = monitornoInput.value.split(",");
+        console.log(no)
+        ws.send(JSON.stringify(no))
+    }
+
+    ws.onmessage = function (event) {
+        var theData = JSON.parse(event.data);
+        console.log(theData)
+    }
+</script>
+</html>
