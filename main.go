@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 
 	"github.com/fengdu/risk-websocket-server/core"
@@ -15,7 +16,8 @@ import (
 )
 
 var (
-	rethinkAddr = flag.String("RethinkDB__Url", "websocket-rethinkdb:28015", "The rethinkdb server address in the format of host:port")
+	rethinkAddr = flag.String("RethinkDB__Url", "rethinkdb-websocket:28015", "The rethinkdb server address in the format of host:port")
+	port        = flag.Int("port", 8080, "The server port")
 
 	upgrader = websocket.Upgrader{
 		CheckOrigin:     func(r *http.Request) bool { return true },
@@ -52,8 +54,8 @@ func main() {
 		http.ServeFile(w, r, "test.html")
 	})
 
-	log.Info("Now server listen on : 8443")
-	if err := http.ListenAndServe(":8443", nil); err != nil {
+	log.Infof("Now server listen on : %v", *port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%v", *port), nil); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -63,8 +65,14 @@ func parseEnv() {
 	if rethinkAddrEnv != "" {
 		rethinkAddr = &rethinkAddrEnv
 	}
-
 	log.Println("RethinkDB__Url: ", *rethinkAddr)
+
+	portEnv := os.Getenv("port")
+	if portEnv != "" {
+		if i, err := strconv.Atoi(portEnv); err != nil {
+			port = &i
+		}
+	}
 }
 
 func websocketHandler(res http.ResponseWriter, req *http.Request) {
