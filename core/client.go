@@ -56,7 +56,10 @@ func (c *client) Read() {
 			break
 		}
 
-		c.monitorNos <- message
+		if len(message) > 0 {
+			c.monitorNos <- message
+		}
+
 		log.Infof("Message from %v : %v", *c, message)
 	}
 }
@@ -126,6 +129,13 @@ func (c *client) retryDoSubscribe(ctxRoot context.Context, rethinkAddr string, m
 		}
 
 		go c.changeFeed(ctx, session, TableName_SubscribeCustRisk, filter, errChan)
+		go c.changeFeed(ctx, session, TableName_SubscribeQuoteMon, filter, errChan)
+		go c.changeFeed(ctx, session, TableName_SubscribeCustHold, filter, errChan)
+		go c.changeFeed(ctx, session, TableName_SubscribeCustGroupHold, filter, errChan)
+		go c.changeFeed(ctx, session, TableName_SubscribeProuctGroupRisk, filter, errChan)
+		go c.changeFeed(ctx, session, TableName_SubscribeTunnelRealFund, nil, errChan)
+		go c.changeFeed(ctx, session, TableName_SubscribeCorpHoldMon, filter, errChan)
+		go c.changeFeed(ctx, session, TableName_SubscribeNearDediveHold, filter, errChan)
 
 		select {
 		case err := <-errChan:
@@ -162,13 +172,20 @@ func (c *client) changeFeed(ctx context.Context, session *r.Session, table strin
 		default:
 			m := value.(map[string]interface{})
 			if v, ok := m["new_val"]; ok {
-				c.send <- v
+				c.send <- addAdditionalFieldOfMessage(v, table)
 			} else if v, ok := m["old_val"]; ok {
-				c.send <- v
+				c.send <- addAdditionalFieldOfMessage(v, table)
 			}
 		case <-ctx.Done():
 			return
 		}
 	}
 	errChan <- res.Err()
+}
+
+func addAdditionalFieldOfMessage(v interface{}, subType string) map[string]interface{} {
+	val := v.(map[string]interface{})
+	val["type"] = subType
+
+	return val
 }
